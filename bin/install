@@ -2,7 +2,7 @@
 
 set -e
 set -o pipefail
-# set -x
+set -x
 
 ASDF_INSTALL_TYPE=${ASDF_INSTALL_TYPE:-version}
 [ -n "$ASDF_INSTALL_VERSION" ] || (>&2 echo 'Missing ASDF_INSTALL_VERSION' && exit 1)
@@ -19,17 +19,30 @@ install_plugin() {
 
   echo "Downloading ollama from ${download_url}"
 
-  # releases for Mac and for versions prior to 0.3.7 provide the binary
-  if [ "${platform}" == "darwin" ] || [ "$(printf '%s\n' "0.3.6" "$version" | sort -rV | head -n1)" = "0.3.6" ]; then
+  local bin_path="${bin_install_path}/ollama"
+  local tmp_download_file=$(mktemp)
+
+  # releases for Mac since 0.5.7 use tgz for artifact
+  if [ "${platform}" == "darwin" ] && [ "$(printf '%s\n' "0.5.7" "$version" | sort -rV | head -n1)" = "$version" ]; then
     mkdir -p "${bin_install_path}"
-    local bin_path="${bin_install_path}/ollama"
-    curl -sSfL "$download_url" -o "$bin_path"
-    chmod +x $bin_path
-  else
-    pushd $install_path > /dev/null
-    local tmp_download_file=$(mktemp)
+    pushd $bin_install_path > /dev/null
     curl -sSfL "$download_url" -o "$tmp_download_file"
     tar zxf "$tmp_download_file" || exit 1
+    chmod +x $bin_path
+
+  # releases for Mac and versions prior to 0.3.7 provided the binary
+  elif [ "${platform}" == "darwin" ] || [ "$(printf '%s\n' "0.3.6" "$version" | sort -rV | head -n1)" = "0.3.6" ]; then
+    mkdir -p "${bin_install_path}"
+    pushd $bin_install_path > /dev/null
+    curl -sSfL "$download_url" -o "$bin_path"
+    chmod +x $bin_path
+
+  # everything else uses tgz for artifact
+  else
+    pushd $install_path > /dev/null
+    curl -sSfL "$download_url" -o "$tmp_download_file"
+    tar zxf "$tmp_download_file" || exit 1
+
   fi
 }
 
@@ -59,9 +72,14 @@ get_download_url() {
   local arch=$(get_arch)
 
   if [ "${platform}" == "darwin" ]; then
-    echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-${platform}"
+    # releases from 0.5.8 use tgz for artifact
+    if [ "$(printf '%s\n' "0.5.8" "$version" | sort -rV | head -n1)" = "$version" ]; then
+      echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-darwin.tgz"
+    else
+      echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-darwin"
+    fi
   else
-    # releases since 0.3.7 use tgz for artifact
+    # releases from 0.3.7 use tgz for artifact
     if [ "$(printf '%s\n' "0.3.7" "$version" | sort -rV | head -n1)" = "$version" ]; then
       echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-${platform}-${arch}.tgz"
     else
