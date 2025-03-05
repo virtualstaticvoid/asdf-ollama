@@ -2,6 +2,8 @@ name: Main Workflow
 
 on:
   push:
+    branches:
+      - main
     paths-ignore:
       - '**.md'
   pull_request:
@@ -38,3 +40,9 @@ jobs:
         with:
           command: ollama --version
           version: "0.3.7"
+
+      - name: asdf_plugin_test_0_5_8
+        uses: asdf-vm/actions/plugin-test@v2
+        with:
+          command: ollama --version
+          version: "0.5.8"
