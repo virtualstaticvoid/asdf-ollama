@@ -46,3 +46,9 @@ jobs:
         with:
           command: ollama --version
           version: "0.5.8"
+
+      - name: asdf_plugin_test_0_14_0
+        uses: asdf-vm/actions/plugin-test@v2
+        with:
+          command: ollama --version
+          version: "0.14.0"

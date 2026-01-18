@@ -37,6 +37,12 @@ install_plugin() {
     curl -sSfL "$download_url" -o "$bin_path"
     chmod +x $bin_path
 
+  # releases for Linux since 0.13.5 use tar.zst for artifact
+  elif [ "$(printf '%s\n' "0.13.5" "$version" | sort -rV | head -n1)" = "$version" ]; then
+    pushd $install_path > /dev/null
+    curl -sSfL "$download_url" -o "$tmp_download_file"
+    tar --zstd -xf "$tmp_download_file" || exit 1
+
   # everything else uses tgz for artifact
   else
     pushd $install_path > /dev/null
@@ -79,8 +85,11 @@ get_download_url() {
       echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-darwin"
     fi
   else
-    # releases from 0.3.7 use tgz for artifact
-    if [ "$(printf '%s\n' "0.3.7" "$version" | sort -rV | head -n1)" = "$version" ]; then
+    if [ "$(printf '%s\n' "0.13.5" "$version" | sort -rV | head -n1)" = "$version" ]; then
+      # releases from 0.13.5 use tar.zst for artifact
+      echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-${platform}-${arch}.tar.zst"
+    elif [ "$(printf '%s\n' "0.3.7" "$version" | sort -rV | head -n1)" = "$version" ]; then
+      # releases from 0.3.7 use tgz for artifact
       echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-${platform}-${arch}.tgz"
     else
       echo "https://github.com/ollama/ollama/releases/download/v${version}/ollama-${platform}-${arch}"
